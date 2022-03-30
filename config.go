@@ -1,7 +1,10 @@
 package main
 
 type Config struct {
-	Token string `json:"token"`
+	Token    string
+	IP       string
+	Port     string
+	Loglevel string `default:"info"`
 }
 
 func NewConfig() *Config {
