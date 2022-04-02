@@ -15,6 +15,11 @@ func decode(data []byte) float64 {
 }
 
 func ReadInputRegister(m modbus.Client, address uint16) (float64, error) {
-	b, err := m.ReadInputRegisters(address-1, 1)
+	b, err := m.ReadInputRegisters(address, 1)
+	return decode(b), err
+}
+
+func ReadHoldingRegister(m modbus.Client, address uint16) (float64, error) {
+	b, err := m.ReadHoldingRegisters(address, 1)
 	return decode(b), err
 }
