@@ -19,7 +19,7 @@ func main() {
 	client := modbus.TCPClient("192.168.10.100:502")
 
 	if *write {
-		_, err := client.WriteSingleRegister(uint16(*address-1), uint16(*value))
+		_, err := client.WriteSingleRegister(uint16(*address), uint16(*value))
 		if err != nil {
 			logrus.Error(err)
 			return
