@@ -98,8 +98,21 @@ func tickerSyncHeapPump(ctx context.Context, client modbus.Client, config *Confi
 }
 
 func syncHeatPump(client modbus.Client, config *Config) error {
+	start, err := ReadHoldingRegister(client, 22)
+	if err != nil {
+		return err
+	}
+	stop, err := ReadHoldingRegister(client, 23)
+	if err != nil {
+		return err
+	}
 
 	if isSameHourAndDay(time.Now(), pricesStore.cheapestHour) {
+
+		if stop == config.CheapStopTemp && start == config.CheapStartTemp {
+			return nil
+		}
+
 		logrus.Info("cheapestHour is now ", pricesStore.cheapestHour)
 		err := writeTemps(client, config.CheapStartTemp, config.CheapStopTemp)
 		if err != nil {
@@ -110,18 +123,22 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 		return nil
 	}
 
-	debugCurrentValues(client)
+	if stop == config.NormalStopTemp && start == config.NormalStopTemp {
+		return nil
+	}
+
 	// set back default values
-	err := writeTemps(client, config.CheapStartTemp, config.CheapStopTemp)
+	err = writeTemps(client, config.NormalStartTemp, config.NormalStopTemp)
 	if err != nil {
 		return err
 	}
+	debugCurrentValues(client)
 	return nil
 }
 
 func writeTemps(client modbus.Client, start, stop int) error {
 
-	_, err := client.WriteSingleRegister(22, uint16(start*100)) // 1000 = 1c
+	_, err := client.WriteSingleRegister(22, uint16(start*100)) // 100 = 1c
 	if err != nil {
 		return err
 	}

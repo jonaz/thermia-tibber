@@ -1,13 +1,15 @@
 package main
 
 type Config struct {
-	Token          string
-	IP             string
-	Port           string
-	Loglevel       string `default:"info"`
-	LogFile        string `default:"/tmp/thermia-tibber.log"`
-	CheapStartTemp int
-	CheapStopTemp  int
+	Token           string
+	IP              string
+	Port            string
+	Loglevel        string `default:"info"`
+	LogFile         string `default:"/tmp/thermia-tibber.log"`
+	CheapStartTemp  int
+	CheapStopTemp   int
+	NormalStartTemp int
+	NormalStopTemp  int
 }
 
 func NewConfig() *Config {
