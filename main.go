@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -99,9 +100,15 @@ func tickerSyncHeapPump(ctx context.Context, client modbus.Client, config *Confi
 
 func syncHeatPump(client modbus.Client, config *Config) error {
 	start, stop, tank, err := getTemps(client)
+	if err != nil {
+		return err
+	}
 
 	if isSameHourAndDay(time.Now(), pricesStore.cheapestHour) {
 		if stop == config.CheapStopTemp && start == config.CheapStartTemp {
+			fileLogger.
+				WithField("tank", tank).
+				Info("temps already updated")
 			return nil
 		}
 
@@ -120,6 +127,9 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 	}
 
 	if stop == config.NormalStopTemp && start == config.NormalStopTemp {
+		fileLogger.
+			WithField("tank", tank).
+			Info("temps already updated")
 		return nil
 	}
 
@@ -142,13 +152,13 @@ func getTemps(client modbus.Client) (start, stop int, tank float64, err error) {
 	if err != nil {
 		return
 	}
-	start = start / 100
+	start /= 100
 
 	stop, err = ReadHoldingRegister(client, 23)
 	if err != nil {
 		return
 	}
-	stop = stop / 100
+	stop /= 100
 
 	tankInt, err := ReadInputRegister(client, 17)
 	if err != nil {
@@ -161,12 +171,12 @@ func getTemps(client modbus.Client) (start, stop int, tank float64, err error) {
 func writeTemps(client modbus.Client, start, stop int) error {
 	_, err := client.WriteSingleRegister(22, uint16(start*100)) // 100 = 1c
 	if err != nil {
-		return err
+		return fmt.Errorf("error writeTemps 22: %w", err)
 	}
 
 	_, err = client.WriteSingleRegister(23, uint16(stop*100))
 	if err != nil {
-		return err
+		return fmt.Errorf("error writeTemps 23: %w", err)
 	}
 	return nil
 }

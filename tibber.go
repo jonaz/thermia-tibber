@@ -17,8 +17,6 @@ func fetchAndCalculate(config *Config) {
 		curr := pricesStore.Current()
 		if curr != nil { // update state if we have cached hour and API call fails.
 			logrus.Errorf("using cached value for Price: %#v", curr)
-			// node.UpdateState("1", pricesStore.State())
-			// TODO DO THE UPDATE HERE
 		}
 		return
 	}
@@ -43,9 +41,6 @@ func fetchAndCalculate(config *Config) {
 
 		pricesStore.SetLastCalculated(time.Now())
 	}
-
-	// node.UpdateState("1", pricesStore.State())
-	// TODO DO THE UPDATE HERE
 }
 
 func fetchPrices(token string) ([]Price, error) {
