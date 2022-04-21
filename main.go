@@ -26,7 +26,7 @@ var pricesStore = NewPrices()
 var wg = &sync.WaitGroup{}
 var fileLogger = logrus.New()
 
-// example run: -token asdf -ip 192.168.10.100 -port 502 -loglevel debug
+// example run: -token asdf -ip 192.168.10.100 -port 502 -loglevel debug.
 func main() {
 	config := NewConfig()
 	multiconfig.MustLoad(config)
@@ -48,7 +48,7 @@ func main() {
 	r := gin.Default()
 	r.StaticFile("/", config.LogFile)
 	go func() {
-		err := r.Run()
+		err := r.Run(":9191")
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logrus.Error(err)
 		}
@@ -98,28 +98,24 @@ func tickerSyncHeapPump(ctx context.Context, client modbus.Client, config *Confi
 }
 
 func syncHeatPump(client modbus.Client, config *Config) error {
-	start, err := ReadHoldingRegister(client, 22)
-	if err != nil {
-		return err
-	}
-	stop, err := ReadHoldingRegister(client, 23)
-	if err != nil {
-		return err
-	}
+	start, stop, tank, err := getTemps(client)
 
 	if isSameHourAndDay(time.Now(), pricesStore.cheapestHour) {
-
 		if stop == config.CheapStopTemp && start == config.CheapStartTemp {
 			return nil
 		}
 
-		logrus.Info("cheapestHour is now ", pricesStore.cheapestHour)
 		err := writeTemps(client, config.CheapStartTemp, config.CheapStopTemp)
 		if err != nil {
 			return err
 		}
 
-		debugCurrentValues(client)
+		fileLogger.
+			WithField("start", config.CheapStartTemp).
+			WithField("stop", config.CheapStopTemp).
+			WithField("tank", tank).
+			Info("updating temperatures")
+
 		return nil
 	}
 
@@ -132,12 +128,37 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 	if err != nil {
 		return err
 	}
-	debugCurrentValues(client)
+
+	fileLogger.
+		WithField("start", config.NormalStartTemp).
+		WithField("stop", config.NormalStopTemp).
+		WithField("tank", tank).
+		Info("updating temperatures")
 	return nil
 }
 
-func writeTemps(client modbus.Client, start, stop int) error {
+func getTemps(client modbus.Client) (start, stop int, tank float64, err error) {
+	start, err = ReadHoldingRegister(client, 22)
+	if err != nil {
+		return
+	}
+	start = start / 100
 
+	stop, err = ReadHoldingRegister(client, 23)
+	if err != nil {
+		return
+	}
+	stop = stop / 100
+
+	tankInt, err := ReadInputRegister(client, 17)
+	if err != nil {
+		return
+	}
+	tank = float64(tankInt) / 100.0
+	return
+}
+
+func writeTemps(client modbus.Client, start, stop int) error {
 	_, err := client.WriteSingleRegister(22, uint16(start*100)) // 100 = 1c
 	if err != nil {
 		return err
@@ -148,29 +169,4 @@ func writeTemps(client modbus.Client, start, stop int) error {
 		return err
 	}
 	return nil
-}
-
-func debugCurrentValues(client modbus.Client) {
-	if logrus.GetLevel() == logrus.DebugLevel {
-		debugHoldingValue(client, "Start temp tap water", 22)
-		debugHoldingValue(client, "Stop temp tap water", 23)
-		debugInputValue(client, "Tap water weighted temperature", 17)
-	}
-}
-
-func debugHoldingValue(client modbus.Client, text string, address uint16) {
-	f, err := ReadHoldingRegister(client, address)
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-	logrus.Debugf("%s: %f", text, f)
-}
-func debugInputValue(client modbus.Client, text string, address uint16) {
-	f, err := ReadInputRegister(client, address)
-	if err != nil {
-		logrus.Error(err)
-		return
-	}
-	logrus.Debugf("%s: %f", text, f)
 }
