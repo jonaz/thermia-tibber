@@ -126,7 +126,7 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 		return nil
 	}
 
-	if stop == config.NormalStopTemp && start == config.NormalStopTemp {
+	if stop == config.NormalStopTemp && start == config.NormalStartTemp {
 		fileLogger.
 			WithField("tank", tank).
 			Info("temps already updated")
