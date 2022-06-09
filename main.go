@@ -104,10 +104,13 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 		return err
 	}
 
+	price := pricesStore.Current().Total
+
 	if isSameHourAndDay(time.Now(), pricesStore.cheapestHour) {
 		if stop == config.CheapStopTemp && start == config.CheapStartTemp {
 			fileLogger.
 				WithField("tank", tank).
+				WithField("price", price).
 				Info("temps already updated")
 			return nil
 		}
@@ -121,6 +124,7 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 			WithField("start", config.CheapStartTemp).
 			WithField("stop", config.CheapStopTemp).
 			WithField("tank", tank).
+			WithField("price", price).
 			Info("updating temperatures")
 
 		return nil
@@ -129,6 +133,7 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 	if stop == config.NormalStopTemp && start == config.NormalStartTemp {
 		fileLogger.
 			WithField("tank", tank).
+			WithField("price", price).
 			Info("temps already updated")
 		return nil
 	}
@@ -143,6 +148,7 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 		WithField("start", config.NormalStartTemp).
 		WithField("stop", config.NormalStopTemp).
 		WithField("tank", tank).
+		WithField("price", price).
 		Info("updating temperatures")
 	return nil
 }
