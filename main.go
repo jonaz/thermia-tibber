@@ -104,7 +104,11 @@ func syncHeatPump(client modbus.Client, config *Config) error {
 		return err
 	}
 
-	price := pricesStore.Current().Total
+	current := pricesStore.Current()
+	price := 0.0
+	if current != nil {
+		price = current.Total
+	}
 
 	if isSameHourAndDay(time.Now(), pricesStore.cheapestHour) {
 		if stop == config.CheapStopTemp && start == config.CheapStartTemp {
